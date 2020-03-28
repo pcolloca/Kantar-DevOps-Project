@@ -1,0 +1,44 @@
+version: '3.7'
+services:
+  
+  db:
+    image: mysql:5.7
+    hostname: mysql
+    ports:
+        - "3306:3306"
+    command: --init-file /data/application/init.sql
+    volumes:
+        - ../mysql/init.sql:/data/application/init.sql
+    environment:
+        MYSQL_ROOT_USER: root
+        MYSQL_ROOT_PASSWORD: secret
+        MYSQL_DATABASE: twitter
+        MYSQL_USER: root
+        MYSQL_PASSWORD: secret
+
+
+  node-js:
+    image: 127.0.0.1:5000/node
+    build: ../react_api
+    ports:
+      - "3000:3000"
+
+  rest_api:
+    image: 127.0.0.1:5000/rest_api
+    build: ../rest_api
+    ports:
+      - "2222:5000"
+    links:
+      - "db:database"
+    logging:
+      driver: splunk
+      options:
+        splunk-token:  e53ed55f-3f08-4ac9-829d-216b61ee8fe1
+        splunk-url: https://172.17.0.2:8088
+        splunk-insecureskipverify: "true"
+
+  twitter_request:
+    image: 127.0.0.1:5000/twitter_request
+    build: ../twitter_request
+    links:
+      - "db:database"

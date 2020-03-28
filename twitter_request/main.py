@@ -2,7 +2,6 @@ from tqdm import tqdm
 
 import pymysql.cursors
 import tweepy
-import json
 
 consumer_key = "token"
 consumer_secret = "token"
@@ -17,18 +16,23 @@ tags = ["openbanking", "apifirst", "devops", "devops", "microservices", "apigate
 
 class DBManager():
 	def __init__ (self):
-		self.conn = pymysql.connect(host='remotemysql.com',
+		self.conn = pymysql.connect(host='database',
 							 port=3306,
-							 user='user',
-							 password='pass',
-							 db='db',
+							 user='root',
+							 password='secret',
+							 db='twitter',
 							 charset='utf8mb4',
-							 cursorclass=pymysql.cursors.DictCursor)
+							 cursorclass=pymysql.cursors.DictCursor,
+							 connect_timeout=60)
 		self.cursor = self.conn.cursor()
+
+	def db_commit(self, query):
+		self.cursor.execute(query)
+		self.conn.commit()
 
 	def db_query(self, query):
 		self.cursor.execute(query)
-		self.conn.commit()
+		return self.cursor.fetchall()
 	
 	def __del__(self):
 		self.cursor.close()
@@ -37,7 +41,9 @@ class DBManager():
 
 def main():
 	db = DBManager()
-	db.db_query("DELETE FROM tweets")
+	lenght = db.db_query("SELECT COUNT(*) AS 'total' FROM tweets")
+	lenght = lenght[0]['total']
+
 	for tag in tqdm(tags, position=0):
 		c = tweepy.Cursor(api.search, q=f"(#{tag})", result_type="recent")
 
@@ -51,7 +57,14 @@ def main():
 			lang = tweet.lang
 
 			query = f"INSERT INTO tweets (hashtag, `text`, `date`, user, location, followers, language) VALUES (\'{tag}\', \'{text}\', \'{date}\', \'{user}\', \'{location}\', {followers}, \'{lang}\');"
-			db.db_query(query)
+			try:
+				db.db_commit(query)
+			except Exception as e:
+				print(e)
+
+	if lenght > 0:
+		db.db_commit(f"DELETE FROM tweets LIMIT {lenght}")
+	
 	del db
 
 if __name__ == '__main__':

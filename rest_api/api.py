@@ -5,13 +5,14 @@ app = flask.Flask(__name__)
 
 class DBManager():
 	def __init__ (self):
-		self.conn = pymysql.connect(host='remotemysql.com',
+		self.conn = pymysql.connect(host='database',
 							 port=3306,
-							 user='user',
-							 password='pass',
-							 db='db',
+							 user='root',
+							 password='secret',
+							 db='twitter',
 							 charset='utf8mb4',
-							 cursorclass=pymysql.cursors.DictCursor)
+							 cursorclass=pymysql.cursors.DictCursor,
+							 connect_timeout=60)
 		self.cursor = self.conn.cursor()
 
 	def db_query(self, query):
